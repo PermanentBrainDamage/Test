@@ -1,7 +1,7 @@
 package com.yourcompany;
 
 import java.util.List;
-import java.util.ArrayList;
+import java.util.ListIterator;
 
 public class JumpSearch<T extends Comparable<? super T>> implements SearchAlgorithm<T> {
 
@@ -10,37 +10,34 @@ public class JumpSearch<T extends Comparable<? super T>> implements SearchAlgori
         long startTime = System.nanoTime();
         int counter = 0;
         int n = list.size();
+        if (n == 0) {
+            long endTime = System.nanoTime();
+            return new SearchResult<>("Jump Search", null, -1, counter, endTime - startTime);
+        }
 
-        if (list instanceof ArrayList) {
-            int step = (int) Math.floor(Math.sqrt(n));
-            int prev = 0;
+        int step = (int) Math.floor(Math.sqrt(n));
+        int prev = 0;
+        int currentStep = step;
 
-            while (list.get(Math.min(step, n) - 1).compareTo(key) < 0) {
-                counter++;
-                prev = step;
-                step += (int) Math.floor(Math.sqrt(n));
-                if (prev >= n) {
-                    long endTime = System.nanoTime();
-                    return new SearchResult<>(null, -1, counter, endTime - startTime);
-                }
-            }
 
-            while (list.get(prev).compareTo(key) < 0) {
-                counter++;
-                prev++;
-                if (prev == Math.min(step, n)) {
-                    long endTime = System.nanoTime();
-                    return new SearchResult<>(null, -1, counter, endTime - startTime);
-                }
-            }
-
+        while (currentStep < n && list.get(currentStep - 1).compareTo(key) < 0) {
             counter++;
-            if (list.get(prev).compareTo(key) == 0) {
+            prev = currentStep;
+            currentStep += step;
+        }
+
+
+        ListIterator<T> iterator = list.listIterator(prev);
+        for (int i = prev; i < Math.min(currentStep, n); i++) {
+            counter++;
+            T currentElement = iterator.next();
+            if (currentElement.compareTo(key) == 0) {
                 long endTime = System.nanoTime();
-                return new SearchResult<>(list.get(prev), prev, counter, endTime - startTime);
+                return new SearchResult<>("Jump Search", currentElement, i, counter, endTime - startTime);
             }
         }
+
         long endTime = System.nanoTime();
-        return new SearchResult<>(null, -1, counter, endTime - startTime);
+        return new SearchResult<>("Jump Search", null, -1, counter, endTime - startTime);
     }
 }
