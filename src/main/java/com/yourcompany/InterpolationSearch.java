@@ -1,9 +1,10 @@
 package com.yourcompany;
 
 import java.util.List;
-import java.util.ArrayList;
+import java.util.RandomAccess;
+import java.util.Iterator;
 
-public class InterpolationSearch<T extends Comparable<? super T>> implements SearchAlgorithm<T> {
+public class InterpolationSearch<T extends Comparable<T>> implements SearchAlgorithm<T> {
 
     @Override
     public SearchResult<T> search(List<T> list, T key) {
@@ -12,38 +13,53 @@ public class InterpolationSearch<T extends Comparable<? super T>> implements Sea
         int low = 0;
         int high = list.size() - 1;
 
-        if (list instanceof ArrayList) {
-            while (low <= high && key.compareTo(list.get(low)) >= 0 && key.compareTo(list.get(high)) <= 0) {
-                counter++;
+        // Determine if list supports random access
+        boolean isRandomAccess = list instanceof RandomAccess;
 
-                if (list.get(high).compareTo(list.get(low)) == 0) {
-                    if (key.compareTo(list.get(low)) == 0) {
-                        counter++;
-                        long endTime = System.nanoTime();
-                        return new SearchResult<>(list.get(low), low, counter, endTime - startTime);
-                    } else {
-                        long endTime = System.nanoTime();
-                        return new SearchResult<>(null, -1, counter, endTime - startTime);
-                    }
-                }
+        while (low <= high) {
+            counter++;
 
-                double pos = (double) (high - low) / (list.get(high).compareTo(list.get(low))) * (key.compareTo(list.get(low)));
-                int middle = low + (int) pos;
-
-                counter++;
-                if (list.get(middle).compareTo(key) == 0) {
+            // Prevent division by zero
+            T lowVal = get(list, low, isRandomAccess);
+            T highVal = get(list, high, isRandomAccess);
+            int range = highVal.compareTo(lowVal);
+            if (range == 0) {
+                if (lowVal.equals(key)) {
                     long endTime = System.nanoTime();
-                    return new SearchResult<>(list.get(middle), middle, counter, endTime - startTime);
+                    return new SearchResult<>("InterpolationSearch", lowVal, low, counter, endTime - startTime);
                 }
+                break;
+            }
 
-                if (list.get(middle).compareTo(key) < 0) {
-                    low = middle + 1;
-                } else {
-                    high = middle - 1;
-                }
+            // Estimate position
+            int pos = low + (int) ((double)(high - low) / range * lowVal.compareTo(key) * -1);
+            pos = Math.max(low, Math.min(pos, high)); // clamp pos within bounds
+
+            T posVal = get(list, pos, isRandomAccess);
+            counter++;
+
+            if (posVal.equals(key)) {
+                long endTime = System.nanoTime();
+                return new SearchResult<>("InterpolationSearch", posVal, pos, counter, endTime - startTime);
+            } else if (posVal.compareTo(key) < 0) {
+                low = pos + 1;
+            } else {
+                high = pos - 1;
             }
         }
+
         long endTime = System.nanoTime();
-        return new SearchResult<>(null, -1, counter, endTime - startTime);
+        return new SearchResult<>("InterpolationSearch", null, -1, counter, endTime - startTime);
+    }
+
+    // Helper to get element safely depending on RandomAccess
+    private T get(List<T> list, int index, boolean isRandomAccess) {
+        if (isRandomAccess) {
+            return list.get(index);
+        } else {
+            // Sequential access for LinkedList
+            Iterator<T> iter = list.listIterator(index);
+            return iter.next();
+        }
     }
 }

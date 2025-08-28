@@ -1,134 +1,266 @@
 package com.yourcompany;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Collections;
-import java.util.Random;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ExecutionException;
+import java.io.File;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartUtils;
+import org.jfree.chart.JFreeChart;
+import org.jfree.chart.axis.LogarithmicAxis;
+import org.jfree.chart.plot.CategoryPlot;
+import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.data.category.DefaultCategoryDataset;
 
 public class Main {
+
     public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        int choice = -1;
+
+        ArrayList<Article> arrayList = new ArrayList<>();
+        LinkedList<Article> linkedList = new LinkedList<>();
         String filePath = "src/main/resources/Article.csv";
-        ArrayList<Article> articleArrayList = new ArrayList<>();
-        LinkedList<Article> articleLinkedList = new LinkedList<>();
 
-        System.out.println("Reading data from " + filePath + "...");
-        DataInput.readArticleFile(articleArrayList, filePath);
-        DataInput.readArticleFile(articleLinkedList, filePath);
+        DataInput.readArticleFile(arrayList, filePath);
+        DataInput.readArticleFile(linkedList, filePath);
 
-        if (articleArrayList.isEmpty()) {
-            System.out.println("No articles found. Please check the file path and content.");
+        if (arrayList.isEmpty()) {
+            System.out.println("No articles found. Check the file path.");
             return;
         }
 
-        System.out.println("Successfully read " + articleArrayList.size() + " articles.");
+        Collections.sort(arrayList);
+        Collections.sort(linkedList);
 
-        // Sort the lists after reading so that BinarySearch and others can work
-        Collections.sort(articleArrayList);
-        Collections.sort(articleLinkedList);
-
-        System.out.println("\n--- Starting Empirical Testing ---");
-        int numberOfRuns = 30;
-
-        runTests(numberOfRuns, articleArrayList, "ArrayList");
-        System.out.println("-----------------------------------");
-        runTests(numberOfRuns, articleLinkedList, "LinkedList");
-
-        System.out.println("\n--- Empirical Testing Complete ---");
+        while (choice != 4) {
+            displayMenu();
+            try {
+                choice = scanner.nextInt();
+                switch (choice) {
+                    case 1 -> runEmpiricalTests(arrayList, linkedList);
+                    case 2 -> displayWorstCaseTable();
+                    case 3 -> runRaceMenu(arrayList, linkedList, scanner);
+                    case 4 -> System.out.println("Exiting program. Goodbye!");
+                    default -> System.out.println("Invalid choice. Enter 1-4.");
+                }
+            } catch (InputMismatchException e) {
+                System.out.println("Invalid input. Enter a number.");
+                scanner.next();
+                choice = -1;
+            }
+            System.out.println();
+        }
+        scanner.close();
     }
 
-    private static <T extends Comparable<? super T>> void runTests(int numberOfRuns, List<T> list, String listType) {
-        final SearchAlgorithm<T> linearSearch = new LinearSearch<>();
-        final SearchAlgorithm<T> binarySearch = new BinarySearch<>();
-        final SearchAlgorithm<T> jumpSearch = new JumpSearch<>();
-        final SearchAlgorithm<T> interpolationSearch = new InterpolationSearch<>();
+    private static void displayMenu() {
+        System.out.println("--- Search Algorithm Tester ---");
+        System.out.println("1. Run Empirical Testing (30 runs)");
+        System.out.println("2. Worst Case Time Complexity Table");
+        System.out.println("3. Race Algorithms (Single run)");
+        System.out.println("4. Exit");
+        System.out.print("Enter your choice: ");
+    }
 
-        final ExecutorService executor = Executors.newFixedThreadPool(4); // Use a thread pool
+    // ---------------- EMPIRICAL TESTING ----------------
+    private static void runEmpiricalTests(List<Article> arrayList, List<Article> linkedList) {
+        System.out.println("\n--- Empirical Testing (30 runs) ---");
 
-        List<Future<SearchResult<T>>> linearFutures = new ArrayList<>();
-        List<Future<SearchResult<T>>> binaryFutures = new ArrayList<>();
-        List<Future<SearchResult<T>>> jumpFutures = new ArrayList<>();
-        List<Future<SearchResult<T>>> interpolationFutures = new ArrayList<>();
+        System.out.println("\n--- ArrayList ---");
+        runTests(30, arrayList, "ArrayList");
+
+        System.out.println("\n--- LinkedList ---");
+        runTests(30, linkedList, "LinkedList");
+    }
+
+    private static void runTests(int runs, List<Article> list, String listType) {
+        final SearchAlgorithm<Article> linear = new LinearSearch<>();
+        final SearchAlgorithm<Article> binary = new BinarySearch<>();
+        final SearchAlgorithm<Article> jump = new JumpSearch<>();
+        final SearchAlgorithm<Article> interpolation = new InterpolationSearch<>();
 
         final Random random = new Random();
-        final int size = list.size();
 
-        for (int i = 0; i < numberOfRuns; i++) {
-            final T target;
-            if (random.nextDouble() < 0.2) { // 20% chance of a non-existent key
-                target = (T) new Article(random.nextInt(1000000) + size, "Non-existent", "Non-existent", 0, 0, 0, 0, 0);
+        List<SearchResult<Article>> linearResults = new ArrayList<>();
+        List<SearchResult<Article>> binaryResults = new ArrayList<>();
+        List<SearchResult<Article>> jumpResults = new ArrayList<>();
+        List<SearchResult<Article>> interpolationResults = new ArrayList<>();
+
+        for (int i = 0; i < runs; i++) {
+            Article target;
+            if (random.nextDouble() < 0.2) { // 20% non-existent
+                target = new Article(1_000_000 + i, "Non-existent", "Non-existent",0,0,0,0,0);
             } else {
-                target = list.get(random.nextInt(size));
+                target = list.get(random.nextInt(list.size()));
             }
 
-            linearFutures.add(executor.submit(() -> linearSearch.search(list, target)));
-            binaryFutures.add(executor.submit(() -> binarySearch.search(list, target)));
-            jumpFutures.add(executor.submit(() -> jumpSearch.search(list, target)));
-            interpolationFutures.add(executor.submit(() -> interpolationSearch.search(list, target)));
+            linearResults.add(linear.search(list, target));
+            binaryResults.add(binary.search(list, target));
+            jumpResults.add(jump.search(list, target));
+            interpolationResults.add(interpolation.search(list, target));
         }
 
+        printStatistics(linearResults, "Linear Search", listType);
+        printStatistics(binaryResults, "Binary Search", listType);
+        printStatistics(jumpResults, "Jump Search", listType);
+        printStatistics(interpolationResults, "Interpolation Search", listType);
+    }
+
+    private static void printStatistics(List<SearchResult<Article>> results, String algorithm, String listType) {
+        List<Integer> ops = results.stream().map(SearchResult::getOperations).collect(Collectors.toList());
+        List<Long> times = results.stream().map(SearchResult::getTimeNanos).collect(Collectors.toList());
+
+        int bestOps = ops.stream().min(Integer::compareTo).orElse(0);
+        int worstOps = ops.stream().max(Integer::compareTo).orElse(0);
+        double meanOps = ops.stream().mapToInt(Integer::intValue).average().orElse(0.0);
+
+        long bestTime = times.stream().min(Long::compareTo).orElse(0L);
+        long worstTime = times.stream().max(Long::compareTo).orElse(0L);
+        double meanTime = times.stream().mapToLong(Long::longValue).average().orElse(0.0);
+
+        System.out.printf("\n%s | %s%n", algorithm, listType);
+        System.out.printf("Ops -> Best: %d | Mean: %.2f | Worst: %d%n", bestOps, meanOps, worstOps);
+        System.out.printf("Time (ns) -> Best: %d | Mean: %.2f | Worst: %d%n", bestTime, meanTime, worstTime);
+    }
+
+    // ---------------- RACE TEST ----------------
+    private static void runRaceMenu(List<Article> arrayList, List<Article> linkedList, Scanner scanner) {
+        System.out.println("Select Data Structure:");
+        System.out.println("1. ArrayList");
+        System.out.println("2. LinkedList");
+        int choice = scanner.nextInt();
+        if (choice == 1) runRace(arrayList, "ArrayList");
+        else if (choice == 2) runRace(linkedList, "LinkedList");
+        else System.out.println("Invalid choice.");
+    }
+
+    private static void runRace(List<Article> list, String listType) {
+        final SearchAlgorithm<Article> linear = new LinearSearch<>();
+        final SearchAlgorithm<Article> binary = new BinarySearch<>();
+        final SearchAlgorithm<Article> jump = new JumpSearch<>();
+        final SearchAlgorithm<Article> interpolation = new InterpolationSearch<>();
+
+        final Random random = new Random();
+        final Article target = list.get(random.nextInt(list.size()));
+
+        ExecutorService executor = Executors.newFixedThreadPool(4);
+        List<Future<SearchResult<Article>>> futures = new ArrayList<>();
+        futures.add(executor.submit(() -> linear.search(list, target)));
+        futures.add(executor.submit(() -> binary.search(list, target)));
+        futures.add(executor.submit(() -> jump.search(list, target)));
+        futures.add(executor.submit(() -> interpolation.search(list, target)));
         executor.shutdown();
 
         try {
-            printStatistics(getResults(linearFutures), "Linear Search", listType);
-            printStatistics(getResults(binaryFutures), "Binary Search", listType);
-            printStatistics(getResults(jumpFutures), "Jump Search", listType);
-            printStatistics(getResults(interpolationFutures), "Interpolation Search", listType);
-        } catch (InterruptedException | ExecutionException e) {
+            System.out.println("\n--- Race for target ID " + target.getId() + " | " + listType + " ---");
+
+            DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+
+            // Populate dataset and replace zero or negative times with 1
+            for (Future<SearchResult<Article>> f : futures) {
+                SearchResult<Article> res = f.get();
+                long safeTime = Math.max(res.getTimeNanos(), 1);
+                System.out.printf("Algorithm: %s | Time (ns): %d%n", res.getAlgorithmName(), res.getTimeNanos());
+                dataset.addValue(safeTime, res.getAlgorithmName(), listType);
+            }
+
+            // Create chart
+            JFreeChart chart = ChartFactory.createBarChart(
+                    listType + " Race",
+                    "Algorithm",
+                    "Time (ns)",
+                    dataset,
+                    PlotOrientation.VERTICAL,
+                    true, true, false
+            );
+
+            // Apply logarithmic axis for LinkedList
+            if (listType.equals("LinkedList")) {
+                CategoryPlot plot = chart.getCategoryPlot();
+                LogarithmicAxis logAxis = new LogarithmicAxis("Time (ns)");
+                logAxis.setAllowNegativesFlag(false);
+                logAxis.setStrictValuesFlag(false);
+                logAxis.setRange(1, getMaxTime(dataset) * 1.1); // safe upper bound
+                plot.setRangeAxis(logAxis);
+            }
+
+            ChartUtils.saveChartAsPNG(new File(listType + "_race_chart.png"), chart, 800, 600);
+            System.out.println("Race chart saved as " + listType + "_race_chart.png");
+
+        } catch (InterruptedException | ExecutionException | java.io.IOException e) {
             e.printStackTrace();
         }
     }
 
-    private static <T extends Comparable<? super T>> List<SearchResult<T>> getResults(List<Future<SearchResult<T>>> futures) throws InterruptedException, ExecutionException {
-        List<SearchResult<T>> results = new ArrayList<>();
-        for (Future<SearchResult<T>> future : futures) {
-            SearchResult<T> result = future.get();
-            if (result != null) {
-                results.add(result);
+    // Helper function to get maximum value in dataset
+    private static double getMaxTime(DefaultCategoryDataset dataset) {
+        double max = Double.MIN_VALUE;
+        for (int row = 0; row < dataset.getRowCount(); row++) {
+            for (int col = 0; col < dataset.getColumnCount(); col++) {
+                Number value = dataset.getValue(row, col);
+                if (value != null) {
+                    max = Math.max(max, value.doubleValue());
+                }
             }
         }
-        return results;
+        return max;
     }
 
-    private static <T extends Comparable<? super T>> void printStatistics(List<SearchResult<T>> results, String algorithmName, String listType) {
-        System.out.println("\nAlgorithm: " + algorithmName);
-        System.out.println("Data Structure: " + listType);
-        System.out.println("-----------------------------------");
 
-        List<Integer> operationsList = results.stream()
-                .filter(r -> r.getOperations() > 0)
-                .map(SearchResult::getOperations)
-                .collect(Collectors.toList());
 
-        List<Long> timeList = results.stream()
-                .filter(r -> r.getTimeNanos() > 0)
-                .map(SearchResult::getTimeNanos)
-                .collect(Collectors.toList());
+    // ---------------- WORST CASE ----------------
+    private static void displayWorstCaseTable() {
+        System.out.println("\n--- Worst Case / Best / Mean Operations ---");
+        System.out.printf("%-20s | %-15s | %-15s | %-15s | %-15s%n",
+                "Algorithm", "List Type", "Best Ops", "Mean Ops", "Worst Ops");
+        System.out.println("--------------------|----------------|----------------|----------------|----------------");
 
-        if (operationsList.isEmpty() || timeList.isEmpty()) {
-            System.out.println("No valid results to display.");
-            return;
+        ArrayList<Article> arrayList = new ArrayList<>();
+        LinkedList<Article> linkedList = new LinkedList<>();
+        String filePath = "src/main/resources/Article.csv";
+
+        DataInput.readArticleFile(arrayList, filePath);
+        DataInput.readArticleFile(linkedList, filePath);
+
+        Collections.sort(arrayList);
+        Collections.sort(linkedList);
+
+        List<SearchAlgorithm<Article>> algorithms = List.of(
+                new LinearSearch<>(),
+                new BinarySearch<>(),
+                new JumpSearch<>(),
+                new InterpolationSearch<>()
+        );
+        List<String> algorithmNames = List.of(
+                "Linear Search",
+                "Binary Search",
+                "Jump Search",
+                "Interpolation Search"
+        );
+
+        List<List<Article>> lists = List.of(arrayList, linkedList);
+        List<String> listNames = List.of("ArrayList", "LinkedList");
+
+        // Simulate worst-case: pick last element (or non-existent element)
+        for (List<Article> list : lists) {
+            String listType = list instanceof ArrayList ? "ArrayList" : "LinkedList";
+            Article worstCaseTarget = new Article(1_000_000, "Non-existent", "Non-existent",0,0,0,0,0);
+
+            for (int i = 0; i < algorithms.size(); i++) {
+                SearchResult<Article> result = algorithms.get(i).search(list, worstCaseTarget);
+
+                // In worst-case simulation, all ops count as worst
+                int ops = result.getOperations();
+                System.out.printf("%-20s | %-15s | %-15d | %-15.2f | %-15d%n",
+                        algorithmNames.get(i),
+                        listType,
+                        ops,      // best ops = worst in this simplified simulation
+                        (double) ops, // mean ops = same for single run simulation
+                        ops
+                );
+            }
         }
-
-        int bestOperations = operationsList.stream().min(Integer::compareTo).orElse(0);
-        double meanOperations = operationsList.stream().mapToInt(Integer::intValue).average().orElse(0.0);
-        int worstOperations = operationsList.stream().max(Integer::compareTo).orElse(0);
-
-        long bestTime = timeList.stream().min(Long::compareTo).orElse(0L);
-        double meanTime = timeList.stream().mapToLong(Long::longValue).average().orElse(0.0);
-        long worstTime = timeList.stream().max(Long::compareTo).orElse(0L);
-
-        System.out.println("Best Case Operations: " + bestOperations);
-        System.out.println("Mean Operations: " + String.format("%.2f", meanOperations));
-        System.out.println("Worst Case Operations: " + worstOperations);
-
-        System.out.println("Best Case Time (ns): " + bestTime);
-        System.out.println("Mean Time (ns): " + String.format("%.2f", meanTime));
-        System.out.println("Worst Case Time (ns): " + worstTime);
     }
+
 }
