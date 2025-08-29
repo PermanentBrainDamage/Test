@@ -7,6 +7,7 @@ import org.jfree.chart.JFreeChart;
 
 public class Main extends JFrame {
 
+    // Main constructor to set up the GUI
     public Main() {
         setTitle("Search Algorithm Analyzer");
         setSize(900, 700);
@@ -18,6 +19,7 @@ public class Main extends JFrame {
         ChartPanel empiricalChartPanel = new ChartPanel(null);
         ChartPanel raceChartPanel = new ChartPanel(null);
 
+        // Create dropdown
         String[] listTypes = {"ArrayList", "LinkedList"};
         JComboBox<String> listTypeSelector = new JComboBox<>(listTypes);
 
@@ -30,8 +32,10 @@ public class Main extends JFrame {
                 listTypeSelector
         );
 
+        // Create loading panel
         JPanel loadingPanel = UIBuilder.createLoadingPanel();
 
+        // Create worst-case chart
         JFreeChart worstCaseChart = ChartHelper.createWorstCaseLineChart();
         ChartPanel worstCaseChartPanel = new ChartPanel(worstCaseChart);
 
@@ -44,9 +48,11 @@ public class Main extends JFrame {
         getContentPane().add(buttonPanel, BorderLayout.NORTH);
         getContentPane().add(chartPanelContainer, BorderLayout.CENTER);
 
+        // Sets the initial view to be empty
         cardLayout.show(chartPanelContainer, "EMPTY");
     }
 
+    // Main method to run the application
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             Main gui = new Main();

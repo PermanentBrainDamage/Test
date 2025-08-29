@@ -7,8 +7,10 @@ import java.awt.BorderLayout;
 
 public class UIBuilder {
 
+    // Creates the panel with buttons and a dropdown
     public static JPanel createButtonPanel(ActionListener empiricalListener, ActionListener raceListener, ActionListener worstCaseListener, JComboBox<String> selector) {
         JPanel panel = new JPanel();
+
         JButton empiricalButton = new JButton("Run Empirical Test");
         empiricalButton.addActionListener(empiricalListener);
 
@@ -27,6 +29,7 @@ public class UIBuilder {
         return panel;
     }
 
+    // Creates a simple panel to display a loading message
     public static JPanel createLoadingPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         JLabel loadingLabel = new JLabel("Running tests, please wait...", SwingConstants.CENTER);

@@ -20,6 +20,7 @@ public class AppController {
     private final ArrayList<Article> arrayList = new ArrayList<>();
     private final LinkedList<Article> linkedList = new LinkedList<>();
 
+    // Constructor to set up UI components
     public AppController(CardLayout cardLayout, JPanel container, ChartPanel empiricalPanel, ChartPanel racePanel, JComboBox<String> selector) {
         this.cardLayout = cardLayout;
         this.chartPanelContainer = container;
@@ -29,18 +30,21 @@ public class AppController {
         loadData();
     }
 
+    // Loads data into both ArrayList and LinkedList
     private void loadData() {
         String filePath = "src/main/resources/Article.csv";
         DataInput.readArticleFile(arrayList, filePath);
         DataInput.readArticleFile(linkedList, filePath);
     }
 
+    // Runs a search task and updates the chart
     public void runSearchTask(String testType) {
         cardLayout.show(chartPanelContainer, "LOADING");
 
         String selectedListType = (String) listTypeSelector.getSelectedItem();
         List<Article> listToTest;
 
+        // Chooses the list to test
         if ("LinkedList".equals(selectedListType)) {
             listToTest = linkedList;
         } else {
@@ -49,6 +53,7 @@ public class AppController {
 
         SearchTask task = new SearchTask(listToTest, testType);
 
+        // Updates the chart panel upon task completion
         task.addPropertyChangeListener(evt -> {
             if ("state".equals(evt.getPropertyName()) && SwingWorker.StateValue.DONE == evt.getNewValue()) {
                 try {
@@ -67,6 +72,7 @@ public class AppController {
         task.execute();
     }
 
+    // Displays the worst-case chart
     public void showWorstCaseChart() {
         cardLayout.show(chartPanelContainer, "WORST_CASE");
     }

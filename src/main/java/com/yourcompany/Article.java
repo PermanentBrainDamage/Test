@@ -10,6 +10,7 @@ public class Article implements Comparable<Article> {
     private int stats;
     private int finance;
 
+    // Constructs a new Article object
     public Article(int id, String title, String abstractText, int cs, int physics, int math, int stats, int finance) {
         this.id = id;
         this.title = title;
@@ -21,11 +22,12 @@ public class Article implements Comparable<Article> {
         this.finance = finance;
     }
 
+    // Returns the ID of the article
     public int getId() {
         return id;
     }
 
-    // Getters for all fields are good practice, but not strictly necessary for this fix
+    // Getter methods for all fields
     public String getTitle() { return title; }
     public String getAbstractText() { return abstractText; }
     public int getCs() { return cs; }
@@ -34,11 +36,13 @@ public class Article implements Comparable<Article> {
     public int getStats() { return stats; }
     public int getFinance() { return finance; }
 
+    // Compares this article to another based on its ID
     @Override
     public int compareTo(Article other) {
         return Integer.compare(this.id, other.id);
     }
 
+    // Provides a string representation of the article
     @Override
     public String toString() {
         return "Article{" +

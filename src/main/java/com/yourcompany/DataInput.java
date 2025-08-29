@@ -6,12 +6,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-
 public class DataInput {
 
+    // Reads data from a CSV file and populates a list of Article objects.
     public static void readArticleFile(List<Article> articleList, String filePath) {
         try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
-            // Read and discard header
+            // Skips the header row.
             reader.readLine();
 
             String line;
@@ -20,15 +20,13 @@ public class DataInput {
             while ((line = reader.readLine()) != null) {
                 multiLineRecord.append(line);
 
-                // A simple heuristic to check if a line is the end of a record:
-                // It ends with a number (0 or 1) followed by commas, and optionally a quote.
-                // This handles multi-line fields within quotes.
                 if (line.matches(".*\"?,\\d+,\\d+,\\d+,\\d+,\\d+")) {
                     String fullRecord = multiLineRecord.toString();
                     String[] data = parseCSVLine(fullRecord);
 
                     if (data.length >= 8) {
                         try {
+                            // Parses the data and creates a new Article object.
                             int id = Integer.parseInt(data[0].trim());
                             String title = cleanQuotedField(data[1]);
                             String abstractText = cleanQuotedField(data[2]);
@@ -43,7 +41,7 @@ public class DataInput {
                             System.err.println("Skipping invalid record due to NumberFormatException: " + fullRecord);
                         }
                     }
-                    multiLineRecord.setLength(0); // Reset for the next record
+                    multiLineRecord.setLength(0); // Resets the buffer for the next record
                 }
             }
         } catch (IOException e) {
@@ -51,6 +49,7 @@ public class DataInput {
         }
     }
 
+    // A custom CSV parser to handle fields with commas inside quotes.
     private static String[] parseCSVLine(String line) {
         List<String> result = new ArrayList<>();
         boolean inQuotes = false;
@@ -58,6 +57,7 @@ public class DataInput {
         for (int i = 0; i < line.length(); i++) {
             char c = line.charAt(i);
             if (c == '"') {
+                // Handles escaped quotes (e.g., "").
                 if (i + 1 < line.length() && line.charAt(i + 1) == '"') {
                     field.append('"');
                     i++;
@@ -65,6 +65,7 @@ public class DataInput {
                     inQuotes = !inQuotes;
                 }
             } else if (c == ',' && !inQuotes) {
+                // Adds a completed field to the result list.
                 result.add(field.toString());
                 field = new StringBuilder();
             } else {

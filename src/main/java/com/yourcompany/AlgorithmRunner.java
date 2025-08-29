@@ -18,6 +18,7 @@ import org.jfree.data.category.DefaultCategoryDataset;
 
 public class AlgorithmRunner {
 
+    // Runs empirical tests on a list with different search algorithms
     public static JFreeChart runEmpiricalTestsOnList(List<Article> list, int runs) {
         List<Article> sortedList;
         if (list instanceof java.util.RandomAccess) {
@@ -36,6 +37,7 @@ public class AlgorithmRunner {
 
         List<SearchResult<Article>> allResults = new ArrayList<>();
 
+        // Executes search runs with a mix of existing and non-existent targets
         for (int i = 0; i < runs; i++) {
             Article target;
             if (random.nextDouble() < 0.2) {
@@ -56,6 +58,7 @@ public class AlgorithmRunner {
         return ChartHelper.createEmpiricalChart(allResults, chartTitle);
     }
 
+    // Runs a single race test for a random target
     public static JFreeChart runRace(List<Article> list, String listType) {
         List<Article> sortedList = new ArrayList<>(list);
         Collections.sort(sortedList);
@@ -68,6 +71,7 @@ public class AlgorithmRunner {
         final Random random = new Random();
         final Article target = sortedList.get(random.nextInt(sortedList.size()));
 
+        // Uses a thread pool to run algorithms concurrently
         ExecutorService executor = Executors.newFixedThreadPool(4);
         List<Future<SearchResult<Article>>> futures = new ArrayList<>();
 
@@ -84,6 +88,7 @@ public class AlgorithmRunner {
             boolean useLogAxis = listType.equals("LinkedList");
             double maxTime = 0;
 
+            // Gathers results and prints statistics
             for (Future<SearchResult<Article>> f : futures) {
                 SearchResult<Article> res = f.get();
                 long timeNanos = res.getTimeNanos();
@@ -119,6 +124,7 @@ public class AlgorithmRunner {
         }
     }
 
+    // Method to print detailed statistics
     private static void printStatistics(List<SearchResult<Article>> results, String algorithm, String listType) {
         List<Integer> ops = results.stream().map(SearchResult::getOperations).toList();
         List<Long> times = results.stream().map(SearchResult::getTimeNanos).toList();
@@ -136,6 +142,7 @@ public class AlgorithmRunner {
         System.out.printf("Time (ns) -> Best: %-10d | Mean: %-15.2f | Worst: %d%n", bestTime, meanTime, worstTime);
     }
 
+    // Method to filter results by algorithm name
     private static List<SearchResult<Article>> filterResults(List<SearchResult<Article>> allResults, String algorithmName) {
         return allResults.stream()
                 .filter(r -> r.getAlgorithmName().equals(algorithmName))
