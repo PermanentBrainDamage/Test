@@ -18,13 +18,13 @@ public class SearchTask extends SwingWorker<JFreeChart, Void> {
     protected JFreeChart doInBackground() throws Exception {
         if ("EMPIRICAL".equals(testType)) {
             // Run empirical tests and get the data
-            List<SearchResult<Article>> results = Main.runEmpiricalTestsOnList(list, 30);
+            List<SearchResult<Article>> results = AlgorithmRunner.runEmpiricalTestsOnList(list, 30);
             String listType = (list instanceof java.util.ArrayList) ? "ArrayList" : "LinkedList";
             return ChartHelper.createEmpiricalChart(results, "Empirical Test: Mean Time on " + listType);
         } else if ("RACE".equals(testType)) {
             // Run race test
             String listType = (list instanceof java.util.ArrayList) ? "ArrayList" : "LinkedList";
-            return Main.runRace(list, listType);
+            return AlgorithmRunner.runRace(list, listType);
         }
         return null;
     }

@@ -1,8 +1,7 @@
-
 package com.yourcompany;
 
 import java.util.List;
-import java.util.stream.Collectors;
+
 
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.JFreeChart;
@@ -22,7 +21,7 @@ public class ChartHelper {
         List<String> algorithms = results.stream()
                 .map(SearchResult::getAlgorithmName)
                 .distinct()
-                .collect(Collectors.toList());
+                .toList();
 
         for (String algo : algorithms) {
             double meanTime = results.stream()
@@ -50,35 +49,35 @@ public class ChartHelper {
 
 
     public static JFreeChart createWorstCaseLineChart() {
+
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+        int[] ns = {1, 10, 50, 100, 1000, 5000, 10000, 20000};
 
-        int[] nValues = {100, 500, 1000, 2000, 4000, 8000, 16000};
+        for (int n : ns) {
 
-        for (int n : nValues) {
+            dataset.addValue(Math.max(1.0, n), "O(n) Linear/Interpolation(Worst) - ArrayList", String.valueOf(n));
+            dataset.addValue(Math.max(1.0, Math.log(n)/Math.log(2)), "O(log n) Binary Search - ArrayList", String.valueOf(n));
+            dataset.addValue(Math.max(1.0, Math.sqrt(n)), "O(sqrt n) Jump Search - ArrayList", String.valueOf(n));
 
-            dataset.addValue((double) n, "O(n) - Linear", String.valueOf(n));
-            dataset.addValue(Math.log(n) / Math.log(2), "O(log n) - Binary", String.valueOf(n));
-            dataset.addValue(Math.sqrt(n), "O(sqrt(n)) - Jump", String.valueOf(n));
-            dataset.addValue(Math.log(Math.log(n)) / Math.log(2), "O(log log n) - Interpolation (Avg)", String.valueOf(n));
+
+            dataset.addValue(Math.max(1.0, n), "O(n) Linear/Jump - LinkedList", String.valueOf(n));
+
+
+            dataset.addValue(Math.max(1.0, n * (Math.log(n)/Math.log(2))), "O(n log n) Binary Search - LinkedList", String.valueOf(n));
+
+
+            dataset.addValue(Math.max(1.0, n * Math.sqrt(n)), "O(n sqrt n) Interpolation(Worst) - LinkedList", String.valueOf(n));
         }
 
-
         JFreeChart chart = ChartFactory.createLineChart(
-                "Theoretical Worst-Case Complexity (Log Scale)",
-                "Problem Size (n)",
-                "Number of Operations",
-                dataset,
-                PlotOrientation.VERTICAL,
-                true, true, false
+                "Worst-Case Complexity (Theoretical)",
+                "n (Input Size)", "Operations (log scale)",
+                dataset, PlotOrientation.VERTICAL, true, true, false
         );
-
-
         CategoryPlot plot = chart.getCategoryPlot();
-        LogarithmicAxis logAxis = new LogarithmicAxis("Operations (log scale)");
-        logAxis.setAllowNegativesFlag(false);
-        plot.setRangeAxis(logAxis);
-
-
+        plot.setRangeAxis(new LogarithmicAxis("Operations (log scale)"));
         return chart;
     }
+
+
 }
